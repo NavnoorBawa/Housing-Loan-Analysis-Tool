@@ -8,4 +8,3 @@
 **Note**: This tool provides estimates and should be used for guidance only. Always consult with financial advisors before making major financial decisions.
 
 Created with ❤️ using Streamlit | No personal data is collected or stored
-""")
