@@ -1,10 +1,15 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+
+# Try to import matplotlib but don't require it (we're using plotly for visuals)
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
 
 # Set page configuration
 st.set_page_config(
@@ -15,26 +20,26 @@ st.set_page_config(
 )
 
 # App title and description
-st.title("LIC Housing Loan Analysis Tool")
+st.title("Housing Loan Analysis Tool")
 st.markdown("### Make informed decisions about your home loan")
 
 # Sidebar for loan inputs
 st.sidebar.header("Loan Parameters")
 
-# Current loan details (pre-filled with values from the loan statement)
-current_principal = st.sidebar.number_input("Current Principal Balance (₹)", value=873533, step=1000)
-current_rate = st.sidebar.number_input("Current Interest Rate (%)", value=9.05, step=0.05, format="%.2f")
-monthly_payment = st.sidebar.number_input("Monthly EMI (₹)", value=14828, step=100)
-remaining_months = st.sidebar.number_input("Remaining Months", value=80, step=1)
+# Current loan details (with generic default values)
+current_principal = st.sidebar.number_input("Current Principal Balance (₹)", value=1000000, step=1000)
+current_rate = st.sidebar.number_input("Current Interest Rate (%)", value=8.50, step=0.05, format="%.2f")
+monthly_payment = st.sidebar.number_input("Monthly EMI (₹)", value=10000, step=100)
+remaining_months = st.sidebar.number_input("Remaining Months", value=120, step=1)
 
 # Section for exploring interest rate scenarios
 st.sidebar.header("Interest Rate Scenarios")
-new_rate = st.sidebar.number_input("New Interest Rate (%)", value=8.95, min_value=7.0, max_value=current_rate+2.0, step=0.05, format="%.2f")
-rewriting_fee = st.sidebar.number_input("Rewriting Fee (₹)", value=3540, step=100)
+new_rate = st.sidebar.number_input("New Interest Rate (%)", value=current_rate-0.5, min_value=5.0, max_value=current_rate+2.0, step=0.05, format="%.2f")
+rewriting_fee = st.sidebar.number_input("Rewriting Fee (₹)", value=3000, step=100)
 
 # Section for exploring prepayment scenarios
 st.sidebar.header("Prepayment Scenarios")
-prepayment_amount = st.sidebar.number_input("Prepayment Amount (₹)", value=50000, step=10000)
+prepayment_amount = st.sidebar.number_input("Prepayment Amount (₹)", value=100000, step=10000)
 prepayment_fee_percent = st.sidebar.number_input("Prepayment Fee (%)", value=0.0, step=0.05, format="%.2f")
 
 # Functions for loan calculations
@@ -127,8 +132,8 @@ with tab1:
     # Loan balance visualization
     st.subheader("Loan Balance Over Time")
     
-    fig = px.line(current_schedule, x='Month', y='Balance', 
-                 title='Remaining Loan Balance', 
+    fig = px.line(current_schedule, x='Month', y='Balance',
+                 title='Remaining Loan Balance',
                  labels={'Month': 'Months', 'Balance': 'Remaining Balance (₹)'},
                  height=400)
     fig.update_layout(hovermode="x unified")
@@ -141,7 +146,7 @@ with tab1:
     labels = ['Principal', 'Interest']
     values = [current_principal, total_interest]
     
-    fig = px.pie(values=values, names=labels, 
+    fig = px.pie(values=values, names=labels,
                 title='Total Payment Breakdown',
                 color_discrete_sequence=px.colors.sequential.Blues_r)
     fig.update_traces(textposition='inside', textinfo='percent+label')
@@ -170,7 +175,7 @@ with tab2:
         st.metric("Proposed Interest Rate", f"{new_rate:.2f}%", f"-{current_rate - new_rate:.2f}%")
         st.metric("Gross Interest Savings", f"₹{interest_savings:,.2f}")
         st.metric("Rewriting Fee", f"₹{rewriting_fee:,.2f}")
-        st.metric("Net Savings", f"₹{net_savings:,.2f}", 
+        st.metric("Net Savings", f"₹{net_savings:,.2f}",
                  f"{'Beneficial' if net_savings > 0 else 'Not Worth It'}")
     
     with col2:
@@ -234,10 +239,10 @@ with tab3:
     # Calculate the impact of making a prepayment
     prepayment_fee = (prepayment_amount * prepayment_fee_percent) / 100
     prepayment_impact = calculate_prepayment_impact(
-        current_principal, 
-        current_rate, 
-        monthly_payment, 
-        prepayment_amount - prepayment_fee, 
+        current_principal,
+        current_rate,
+        monthly_payment,
+        prepayment_amount - prepayment_fee,
         100
     )
     
@@ -286,11 +291,11 @@ with tab3:
     # Recommendation based on calculated scenarios
     st.subheader("Recommendation")
     
-    if prepayment_impact['Interest Savings'] > net_savings and prepayment_amount <= 100000:
+    if prepayment_impact['Interest Savings'] > net_savings and prepayment_impact['Interest Savings'] > 0:
         st.success("✅ **Best option: Make a prepayment**. You'll save more interest and reduce your loan term by more months compared to paying for an interest rate reduction.")
     elif net_savings > 0 and net_savings > prepayment_impact['Interest Savings']:
         st.success("✅ **Best option: Pay for interest rate reduction**. The savings outweigh the cost of the rewriting fee.")
-    elif prepayment_amount > 100000:
+    elif prepayment_amount > current_principal * 0.25:
         st.warning("⚠️ Consider making a smaller prepayment or saving for a larger one at a later date.")
     else:
         st.error("❌ Neither option provides significant benefits. Consider keeping your current arrangement or exploring other alternatives.")
@@ -361,10 +366,12 @@ with tab4:
 st.markdown("---")
 st.markdown("""
 ### How to use this tool:
-1. Adjust loan parameters in the sidebar to see how changes affect your loan
+1. Enter your loan parameters in the sidebar to match your loan statement
 2. Use the tabs above to explore different aspects of your loan
 3. Compare options for reducing your interest burden and saving money
 4. Make informed decisions about your home loan
 
 **Note**: This tool provides estimates and should be used for guidance only. Always consult with financial advisors before making major financial decisions.
+
+Created with ❤️ using Streamlit | No personal data is collected or stored
 """)
